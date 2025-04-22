@@ -1,0 +1,241 @@
+--create database
+create database data_professional
+
+--create table of canada
+create table  sales_canada 
+(Transaction_ID	text primary key,
+Date  date,	
+Country	text,	
+Product_ID	text,	
+Product_Name	text,	
+Category	text,	
+Price_per_Unit	numeric,	
+Quantity_Purchased	integer,	
+Cost_Price	numeric,	
+Discount_Applied	text,	
+Payment_Method	text,	
+Customer_Age_Group	text,	
+Customer_Gender	text,	
+Store_Location	text,	
+Sales_Rep	text	
+);
+
+select * from public."sales_canada";
+
+--create table of china
+create table  sales_china 
+(Transaction_ID	text primary key,
+Date  date,	
+Country	text,	
+Product_ID	text,	
+Product_Name	text,	
+Category	text,	
+Price_per_Unit	numeric,	
+Quantity_Purchased	integer,	
+Cost_Price	numeric,	
+Discount_Applied	text,	
+Payment_Method	text,	
+Customer_Age_Group	text,	
+Customer_Gender	text,	
+Store_Location	text,	
+Sales_Rep	text	
+);
+select * from public."sales_china";
+
+--create table of india
+create table  sales_india 
+(Transaction_ID	text primary key,
+Date  date,	
+Country	text,	
+Product_ID	text,	
+Product_Name	text,	
+Category	text,	
+Price_per_Unit	numeric,	
+Quantity_Purchased	integer,	
+Cost_Price	numeric,	
+Discount_Applied	text,	
+Payment_Method	text,	
+Customer_Age_Group	text,	
+Customer_Gender	text,	
+Store_Location	text,	
+Sales_Rep	text	
+);
+select * from public."sales_india";
+
+--create table of nigeria 
+create table  sales_nigeria 
+(Transaction_ID	text primary key,
+Date  date,	
+Country	text,	
+Product_ID	text,	
+Product_Name	text,	
+Category	text,	
+Price_per_Unit	numeric,	
+Quantity_Purchased	integer,	
+Cost_Price	numeric,	
+Discount_Applied	text,	
+Payment_Method	text,	
+Customer_Age_Group	text,	
+Customer_Gender	text,	
+Store_Location	text,	
+Sales_Rep	text	
+);
+select * from public."sales_nigeria";
+
+--create table of uk
+create table  sales_uk 
+(Transaction_ID	text primary key,
+Date  date,	
+Country	text,	
+Product_ID	text,	
+Product_Name	text,	
+Category	text,	
+Price_per_Unit	numeric,	
+Quantity_Purchased	integer,	
+Cost_Price	numeric,	
+Discount_Applied	text,	
+Payment_Method	text,	
+Customer_Age_Group	text,	
+Customer_Gender	text,	
+Store_Location	text,	
+Sales_Rep	text	
+);
+select * from public."sales_uk";
+
+--create table of us
+create table  sales_us 
+(Transaction_ID	text primary key,
+Date  date,	
+Country	text,	
+Product_ID	text,	
+Product_Name	text,	
+Category	text,	
+Price_per_Unit	numeric,	
+Quantity_Purchased	integer,	
+Cost_Price	numeric,	
+Discount_Applied	text,	
+Payment_Method	text,	
+Customer_Age_Group	text,	
+Customer_Gender	text,	
+Store_Location	text,	
+Sales_Rep	text	
+);
+select * from public."sales_us";
+
+--create table sales data where add all table data
+
+create table public."sales_data" as
+select * from public."sales_canada"
+union all
+select * from public."sales_china"
+union all
+select * from public."sales_india"
+union all
+select * from public."sales_nigeria"
+union all
+select * from public."sales_uk"
+union all
+select * from public."sales_us"
+
+
+--clean and process data in sql
+--now cheack the null value from the dataset "sales_data"
+select * from public."sales_data"
+where 
+	"country" is null
+	or "price_per_unit" is null
+	or "quantity_purchased" is null
+	or "cost_price" is null
+	or "discount_applied" is null;
+	
+--we the the null value in price_per_unit and quantity_purchased now fill those field
+
+update public."sales_data"
+set "quantity_purchased" = 3
+where "transaction_id" = '00a30472-89a0-4688-9d33-67ea8ccf7aea';
+
+update public."sales_data"
+set "price_per_unit" = (
+	select avg("price_per_unit")
+	from public."sales_data"
+	where "price_per_unit" is not null
+)
+where "transaction_id" = '001898f7-b696-4356-91dc-8f2b73d09c63';
+
+--now cheack the duplicate value from the dataset "sales_data"
+
+select "transaction_id",count(*)
+from public."sales_data"
+group by "transaction_id"
+having count(*)>1;
+
+--add column total amount
+
+alter table public."sales_data" add
+column "total_amount" numeric(10,2);
+
+UPDATE public."sales_data"
+SET "total_amount" = ("price_per_unit" * "quantity_purchased") - CAST("discount_applied" AS NUMERIC);
+
+alter table public."sales_data" add
+column "profit" numeric(10,2);
+
+UPDATE public."sales_data"
+SET "profit" = "total_amount" - ("cost_price" + "quantity_purchased");
+
+--analyze and generate business insights
+--Sales Revenue & Profit by Country (Combined Query)
+SELECT 
+    "country", 
+    SUM("total_amount") AS "total_revenue",
+    SUM("profit") AS "total_profit"
+FROM public."sales_data"
+WHERE "date" BETWEEN '2025-02-10' AND '2025-02-14'
+GROUP BY "country"
+ORDER BY "total_revenue" DESC;
+
+--Top 5 Best-Selling Products (During the Period)
+SELECT 
+    "product_name", 
+    SUM("quantity_purchased") AS "total_Units_sold"
+FROM public."sales_data"
+WHERE "date" BETWEEN '2025-02-10' AND '2025-02-14'
+GROUP BY "product_name"
+ORDER BY "total_Units_sold" DESC
+LIMIT 5;
+
+--Best Sales Representatives (During the Period)
+SELECT 
+    "sales_rep", 
+    SUM("total_amount") AS "total_sales"
+FROM public."sales_data"
+WHERE "date" BETWEEN '2025-02-10' AND '2025-02-14'
+GROUP BY "sales_rep"
+ORDER BY "total_sales" DESC
+LIMIT 5;
+
+
+--Which store locations generated the highest sales?
+SELECT 
+    "store_location", 
+    SUM("total_amount") AS "total_sales",
+    SUM("profit") AS "total_profit"
+FROM public."sales_data"
+WHERE "date" BETWEEN '2025-02-10' AND '2025-02-14'
+GROUP BY "store_location"
+ORDER BY "total_sales" DESC
+limit 5;
+
+--What are the key sales and profit insights for the selected period?
+SELECT 
+    MIN("total_amount") AS "min_sales_value",
+    MAX("total_amount") AS "max_sales_value",
+    AVG("total_amount") AS "avg_sales_value",
+    SUM("total_amount") AS "total_sales_value",
+    MIN("profit") AS "min_profit",
+    MAX("profit") AS "max_profit",
+    AVG("profit") AS "avg_profit",
+    SUM("profit") AS "total_profit"
+FROM public."sales_data"
+WHERE "date" BETWEEN '2025-02-10' AND '2025-02-14';
+
